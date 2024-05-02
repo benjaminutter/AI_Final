@@ -1,5 +1,3 @@
-#TO RUN THIS CODE YOU MUST USE TERMINAL COMMANDS OF 'python main2.py <start_row> <start_col> <end_row> <end_col>'
-
 import heapq
 import sys
 import numpy as np
@@ -8,11 +6,14 @@ import tkinter as tk
 import time
 import tkinter.messagebox as messagebox
 import queue
+from queue import PriorityQueue
+
 
 class PositionInputPopup:
     def __init__(self, master):
         self.master = master
         self.master.title("Position Input")
+        self.destination_positions = []
         
         self.label_start = tk.Label(master, text="Start Position (row, col):")
         self.label_start.grid(row=0, column=0)
@@ -33,11 +34,42 @@ class PositionInputPopup:
         self.button_submit.grid(row=5, columnspan=2)
         
         self.priority_queue = queue.PriorityQueue()
+    
+    def get_ward_priorities(self, matrix):
+        ward_priorities = {}
+        for row_index, row in enumerate(matrix):
+            for col_index, value in enumerate(row):
+                if value != 14:  # 14 indicates no delivery location
+                    # Assign different priority values based on the value in the matrix
+                    if value in [7, 3, 6, 10]:
+                        priority = 5
+                    elif value in [5, 4]:
+                        priority = 4
+                    elif value in [11, 9]:
+                        priority = 3
+                    elif value in [12, 2]:
+                        priority = 2
+                    elif value in [1, 8]:
+                        priority = 1
+                    else:
+                        priority = 0  # Default priority if not specified
+                    ward_priorities[(row_index, col_index)] = priority
+        return ward_priorities
+
+    def arrange_delivery_requests(self, delivery_locations, ward_priorities):
+        delivery_queue = queue.PriorityQueue()
+        for location in delivery_locations:
+            ward_priority = ward_priorities.get(location)
+            if ward_priority is not None:
+                delivery_queue.put((-ward_priority, location))
+            else:
+                print(f"No priority assigned for location: {location}")
+        return delivery_queue
 
     def submit(self):
         start_pos_str = self.entry_start.get()
         destination_pos_str = [entry.get() for entry in self.entry_destinations]
-    
+        
         # Convert start and end positions to tuples of integers
         try:
             start_pos = tuple(map(int, start_pos_str.split(',')))
@@ -58,18 +90,22 @@ class PositionInputPopup:
         if not destination_positions:
             print("No destination positions provided.")
             return
-
+        
+        ward_priorities = self.get_ward_priorities(matrix)  # Get the priority mapping
+        priority_queue = self.arrange_delivery_requests(destination_positions, ward_priorities)
+    
         # Display the matrix with routes marked in a popup
         root = tk.Tk()
         popup = MatrixDisplayPopup(root, delivery_system.matrix)
 
         # Calculate routes and mark them on the matrix for each destination
         routes_info = ""
-        for destination in destination_positions:
+        while not priority_queue.empty():
+            _, destination = priority_queue.get()
             # Calculate routes using Dijkstra's algorithm and A* algorithm
             dijkstra_route = delivery_system.dijkstra(start_pos, destination)
             astar_route = delivery_system.astar(start_pos, destination)
-
+            
             popup.display_path(dijkstra_route)
             popup.display_path(astar_route)
 
@@ -90,24 +126,12 @@ class PositionInputPopup:
                     route_info = f"Route using A* algorithm (shorter) for destination {destination}: {astar_route}\n"
                     delivery_system.mark_route_on_matrix(astar_route, 15)
             routes_info += route_info
+            start_pos = destination
 
         messagebox.showinfo("Routes Information", routes_info)
         print("\nMatrix with routes marked:")
         delivery_system.print_matrix()
         self.master.destroy()
-
-def calculate_priority(matrix, destination):
-    dest_number = matrix[destination[0]][destination[1]]
-    if dest_number == 1:
-        return 5
-    elif dest_number == 2:
-        return 4
-    elif dest_number == 3:
-        return 3
-    elif dest_number == 4:
-        return 2
-    else:
-        return 1
     
 class MatrixDisplayPopup:
     def __init__(self, master, matrix):
@@ -143,7 +167,7 @@ class MatrixDisplayPopup:
 
             self.canvas.create_rectangle(col * 20, row * 20, (col + 1) * 20, (row + 1) * 20, fill=color)
             self.master.update()
-            time.sleep(0.5)
+            time.sleep(0.25)
 
     def display_matrix(self):
         pass
@@ -270,7 +294,7 @@ if __name__ == "__main__":
 [0, 0, 0, 14, 4, 4, 4, 4, 4, 4, 4, 4, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 [0, 0, 0, 14, 4, 4, 4, 4, 4, 4, 4, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 [0, 0, 0, 14, 4, 4, 4, 4, 4, 4, 4, 14, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 14, 0, 0, 0, 0, 0, 0, 0, 0],
-[0, 0, 0, 14, 4, 4, 4, 4, 4, 14, 14, 14, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+[0, 0, 0, 14, 4, 4, 4, 4, 4, 14, 14, 14, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 14, 0, 0, 0, 0, 0, 0, 0, 0],
 [0, 0, 0, 14, 4, 0, 0, 14, 14, 14, 14, 14, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
 [14, 14, 14, 14, 14, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 14, 3, 3, 3, 3, 14, 1, 1, 14],
 [14, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 14, 14, 0, 0, 0, 14, 3, 3, 3, 3, 14, 1, 1, 14],
