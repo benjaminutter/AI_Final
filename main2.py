@@ -77,6 +77,9 @@ class PositionInputPopup:
             print("Invalid input. Please enter valid integer coordinates in the format 'row, col'.")
             return
 
+        if delivery_system.matrix[start_pos[0]][start_pos[1]] == 14:
+            print("Start position cannot be a wall.")
+            return
         
         destination_positions = []
         for pos_str in destination_pos_str:
@@ -114,23 +117,21 @@ class PositionInputPopup:
                 route_info = f"No valid routes found."
             elif dijkstra_route is None:
                 route_info = f"Route using A* algorithm for destination {destination}: {astar_route}\n"
-                delivery_system.mark_route_on_matrix(astar_route, 15)
+                #delivery_system.mark_route_on_matrix(astar_route, 15)
             elif astar_route is None:
                 route_info = f"Route using Dijkstra's algorithm for destination {destination}: {dijkstra_route}\n"
-                delivery_system.mark_route_on_matrix(dijkstra_route, 16)
+                #delivery_system.mark_route_on_matrix(dijkstra_route, 16)
             else:
                 if len(dijkstra_route) <= len(astar_route):
                     route_info = f"Route using Dijkstra's algorithm (shorter or equal) for destination {destination}: {dijkstra_route}\n"
-                    delivery_system.mark_route_on_matrix(dijkstra_route, 16)
+                    #delivery_system.mark_route_on_matrix(dijkstra_route, 16)
                 else:
                     route_info = f"Route using A* algorithm (shorter) for destination {destination}: {astar_route}\n"
-                    delivery_system.mark_route_on_matrix(astar_route, 15)
+                    #delivery_system.mark_route_on_matrix(astar_route, 15)
             routes_info += route_info
             start_pos = destination
 
         messagebox.showinfo("Routes Information", routes_info)
-        print("\nMatrix with routes marked:")
-        delivery_system.print_matrix()
         self.master.destroy()
     
 class MatrixDisplayPopup:
@@ -156,7 +157,7 @@ class MatrixDisplayPopup:
         
     def display_path(self, path):
         if path is None:
-            print("No path found.")
+            #print("No path found.")
             return
 
         for i, (row, col) in enumerate(path):
@@ -167,7 +168,7 @@ class MatrixDisplayPopup:
 
             self.canvas.create_rectangle(col * 20, row * 20, (col + 1) * 20, (row + 1) * 20, fill=color)
             self.master.update()
-            time.sleep(0.25)
+            time.sleep(0.1)
 
     def display_matrix(self):
         pass
@@ -277,14 +278,11 @@ class RobotDeliverySystem:
 
         return None  # No path found
 
-    def mark_route_on_matrix(self, route, symbol):
-        print("Marking route on matrix with symbol:", symbol)
-        print("Route to mark:", route)
-        for row, col in route:
-            print("Marking symbol at position:", row, col)
-            self.matrix[row][col] = symbol
-        print("Matrix after marking route:")
-        self.print_matrix()
+    # def mark_route_on_matrix(self, route, symbol):
+    #     print("Marking route on matrix with symbol:", symbol)
+    #     print("Route to mark:", route)
+    #     print("Matrix after marking route:")
+    #     self.print_matrix()
 
 if __name__ == "__main__":
     matrix = [    
